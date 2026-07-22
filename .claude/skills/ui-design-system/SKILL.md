@@ -11,6 +11,9 @@ Mọi icon, hoạ tiết, illustration đều là SVG viết tay/generate trực
 ## Concept
 Không gian tối, gradient sâu, đèn viền, avatar được chiếu sáng như studio — cảm giác cinematic nhưng tập trung, không lòe loẹt. App mặc định **dark theme** (`<html class="dark">`), không có toggle sáng/tối trừ khi được yêu cầu thêm.
 
+## Visual intensity: Calm mặc định, Cinematic là tùy chọn
+Đây là công cụ luyện thi cần tập trung, không phải trình diễn thị giác — hiệu ứng particle/glow rực rỡ **không phải mặc định**. Mọi component audio-reactive/decorative phải đọc một setting `visualIntensity: 'calm' | 'cinematic'` (mặc định `'calm'`) và giảm biên độ/tần suất chuyển động tương ứng ở mức calm — không hard-code hiệu ứng ở mức tối đa rồi để user tự tắt.
+
 ## Token & styling
 - Dùng token màu chuẩn của shadcn/ui đã cấu hình trong `src/index.css` (`bg-background`, `text-foreground`, `text-muted-foreground`, `border-border`, v.v.) — không tự chế màu hex rời rạc trong component.
 - Component có sẵn: `src/components/ui/` (shadcn). Thêm component mới bằng `npx shadcn@latest add <name>` thay vì tự viết lại từ đầu Radix primitives.
@@ -27,7 +30,7 @@ Không gian tối, gradient sâu, đèn viền, avatar được chiếu sáng nh
 - Mọi animation trang trí phải tôn trọng `prefers-reduced-motion` (tắt/giảm hẳn khi user bật); animation mang thông tin (vd. thay đổi trạng thái mic) vẫn giữ nhưng rút ngắn duration.
 
 ## Trạng thái rõ ràng
-UI phải phản ánh đúng state machine `idle | listening | thinking | speaking` — không suy luận trạng thái từ nhiều nguồn khác nhau trong component, luôn đọc từ state machine trung tâm.
+UI phải phản ánh đúng state machine (XState) `idle | listening | thinking | speaking` — không suy luận trạng thái từ nhiều nguồn khác nhau trong component, luôn đọc từ state machine trung tâm.
 
 ## Accessibility (bắt buộc, không tùy chọn)
 - Subtitle luôn có sẵn (bật/tắt được, không mặc định ẩn hẳn khỏi user không nghe được).
