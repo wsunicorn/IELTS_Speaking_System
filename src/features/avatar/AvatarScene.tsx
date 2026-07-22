@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { ContactShadows } from '@react-three/drei'
+import type { ActiveSpeech } from '@/features/speech/useHeadTTS'
 import { ExaminerBust } from './ExaminerBust'
 import { StudioLighting } from './StudioLighting'
 
@@ -14,8 +15,12 @@ function useTabVisible() {
   return visible
 }
 
+interface AvatarSceneProps {
+  activeSpeechRef: React.RefObject<ActiveSpeech | null>
+}
+
 /** Layer 2 of the 3-layer render (see CLAUDE.md) — the avatar canvas. */
-export function AvatarScene() {
+export function AvatarScene({ activeSpeechRef }: AvatarSceneProps) {
   const tabVisible = useTabVisible()
 
   return (
@@ -29,7 +34,7 @@ export function AvatarScene() {
     >
       <StudioLighting />
       <group position={[0, 0.55, 0]}>
-        <ExaminerBust />
+        <ExaminerBust activeSpeechRef={activeSpeechRef} />
         <ContactShadows position={[0, -1.35, 0]} opacity={0.5} blur={2.4} far={2} />
       </group>
     </Canvas>
