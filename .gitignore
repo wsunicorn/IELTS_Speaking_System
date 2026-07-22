@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 
-# Secrets / env (Cloudflare Worker proxy holds ANTHROPIC_API_KEY — never commit)
+# Secrets / env (Cloudflare Worker proxy holds GEMINI_API_KEY — never commit)
 .env
 .env.*
 .dev.vars
