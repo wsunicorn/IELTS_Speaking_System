@@ -18,6 +18,8 @@ export interface CueCardProps {
   prepSeconds?: number
   /** Speaking time in seconds. IELTS Part 2 default is 120 (up to 2 minutes). */
   speakingSeconds?: number
+  /** Fired on every phase transition — e.g. so a wrapper can start/stop mic recording on 'speaking'/'done'. */
+  onPhaseChange?: (phase: CueCardPhase) => void
   /** Fired once when the speaking timer reaches 0. Rendering what comes next is a later phase. */
   onComplete?: () => void
   className?: string
@@ -48,10 +50,16 @@ export function CueCard({
   card,
   prepSeconds = DEFAULT_PREP_SECONDS,
   speakingSeconds = DEFAULT_SPEAKING_SECONDS,
+  onPhaseChange,
   onComplete,
   className,
 }: CueCardProps) {
   const [phase, setPhase] = useState<CueCardPhase>('prep')
+
+  const transitionTo = (next: CueCardPhase) => {
+    setPhase(next)
+    onPhaseChange?.(next)
+  }
 
   // Two dedicated timer instances (one per phase) instead of one reused/reset
   // timer — each only ever runs once, so the phase transition is a plain
@@ -59,7 +67,7 @@ export function CueCard({
   const speakingTimer = useCountdownTimer(
     speakingSeconds,
     () => {
-      setPhase('done')
+      transitionTo('done')
       onComplete?.()
     },
     { autoStart: false },
@@ -67,7 +75,7 @@ export function CueCard({
   const prepTimer = useCountdownTimer(
     prepSeconds,
     () => {
-      setPhase('speaking')
+      transitionTo('speaking')
       speakingTimer.start()
     },
     { autoStart: true },
