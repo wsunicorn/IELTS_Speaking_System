@@ -1,5 +1,7 @@
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
+import type { ActiveSpeech } from '@/features/speech/useHeadTTS'
 import { useIdleAnimation } from './useIdleAnimation'
+import { useMouthSync } from './useMouthSync'
 
 const SKIN_COLOR = '#d9b79c'
 const SUIT_COLOR = '#232838'
@@ -10,11 +12,16 @@ const HAIR_COLOR = '#2b2620'
 const HEAD_Y = 0.56
 const HEAD_RADIUS = 0.38
 
+interface ExaminerBustProps {
+  activeSpeechRef: React.RefObject<ActiveSpeech | null>
+}
+
 /** Stylized, fully procedural examiner bust — no external mesh (see plan 6.1). */
-export function ExaminerBust() {
+export function ExaminerBust({ activeSpeechRef }: ExaminerBustProps) {
   const reducedMotion = usePrefersReducedMotion()
   const { headRef, chestRef, eyelidLeftRef, eyelidRightRef } =
     useIdleAnimation(reducedMotion)
+  const mouthRef = useMouthSync(activeSpeechRef)
 
   return (
     <group>
@@ -67,8 +74,8 @@ export function ExaminerBust() {
           </mesh>
         </group>
 
-        {/* Mouth — static for Phase 1; Phase 2 drives scale.y from TTS amplitude */}
-        <mesh position={[0, -0.16, 0.36]}>
+        {/* Mouth — scale.y driven by TTS viseme timing (useMouthSync), approximate */}
+        <mesh ref={mouthRef} position={[0, -0.16, 0.36]}>
           <boxGeometry args={[0.15, 0.025, 0.02]} />
           <meshStandardMaterial color={MOUTH_COLOR} roughness={0.6} />
         </mesh>
