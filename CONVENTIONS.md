@@ -7,7 +7,7 @@ Core rule: **Voice + 3D + STT + TTS run 100% client-side and free.** Only the Cl
 
 ## Tech stack (do not swap without asking)
 - Vite + React + TypeScript + Tailwind CSS
-- 3D avatar + lip-sync: TalkingHead (met4citizen) + Ready Player Me (GLB)
+- 3D avatar + lip-sync: **fully procedural**, built with Three.js/React-Three-Fiber — a stylized geometric bust (no external mesh, no GLB, no TalkingHead library). Mouth animation is driven by TTS word timestamps/amplitude (approximate viseme-less lip movement), not real Oculus blendshapes. Traded photorealism for zero external dependency, per explicit user decision. A real rigged GLB (e.g. from Ready Player Me) can be swapped in later without changing anything outside `src/features/avatar/`.
 - TTS: HeadTTS with Kokoro-82M voices (viseme + word timestamps, WebGPU/WASM)
 - STT: Moonshine v2 streaming (real-time) + Whisper base.en fallback, via Transformers.js, in a Web Worker
 - Audio-reactive visuals: Three.js / React-Three-Fiber + GLSL + Web Audio AnalyserNode
@@ -17,7 +17,7 @@ Core rule: **Voice + 3D + STT + TTS run 100% client-side and free.** Only the Cl
 - State machine: XState — explicit states + guarded transitions, not a hand-rolled reducer. Async sources (STT worker, Claude API stream, TTS playback) are easy to race into an invalid combined state (e.g. `listening` + `speaking` at once); a formal machine prevents that by construction.
 
 ## Architecture rules
-- 3-layer render: (1) audio-reactive background canvas, (2) TalkingHead avatar canvas, (3) React DOM UI overlay. Do NOT merge separate Three.js scenes.
+- 3-layer render: (1) audio-reactive background canvas, (2) procedural avatar canvas, (3) React DOM UI overlay. Do NOT merge separate Three.js scenes.
 - App is driven by an explicit state machine (XState): `idle | listening | thinking | speaking`.
 - STT/TTS inference runs in Web Workers; never block the main thread.
 - Prefer WebGPU, fall back to WASM automatically.
@@ -27,9 +27,8 @@ Core rule: **Voice + 3D + STT + TTS run 100% client-side and free.** Only the Cl
 - Barge-in (interrupting the avatar mid-speech) is explicitly **out of MVP scope** — mic stays off while `speaking`. Do not add it without discussing the added complexity (VAD-while-TTS-playing, cancel-and-resume) first.
 - Primary target device is **desktop/laptop**; mobile should not crash or be unusable, but is not tuned or QA'd per phase.
 
-## Design & assets — code-first, no external tools
-- All visual/design assets are authored **directly as code by Claude Code** — no Canva, Figma, stock photos, or external image-gen tools. This covers: icons/illustrations (hand-written SVG), UI decoration and design tokens (Tailwind), 3D lighting/materials/animation, particle systems, and audio-reactive GLSL shaders.
-- **One exception:** the examiner's rigged humanoid avatar mesh (GLB with Oculus viseme blendshapes) is sourced once from Ready Player Me — no LLM can generate a riggable 3D mesh from a text prompt. Everything applied to that mesh afterward (lighting, camera, animation, effects) is still code.
+## Design & assets — code-first, no external tools, no exceptions
+- All visual/design assets, including the avatar itself, are authored **directly as code by Claude Code** — no Canva, Figma, stock photos, external image-gen tools, or external 3D mesh source (no Ready Player Me). Icons/illustrations are hand-written SVG; the avatar, lighting, and effects are Three.js/R3F geometry and materials.
 - Do not reach for the Canva MCP tool for this project; it is not part of the design workflow.
 - **Default visual intensity is calm, not maximal.** The audio-reactive background/particles default to a subtle preset (this is a study tool — the candidate needs to concentrate on speaking, not watch a light show). Full "cinematic" intensity exists as an opt-in Settings toggle, not the default.
 
