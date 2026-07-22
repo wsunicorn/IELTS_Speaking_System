@@ -5,6 +5,9 @@ description: Use when building or styling any React/DOM UI in this project — p
 
 # UI Design System — "phòng thi hiện đại"
 
+## Nguồn asset: code-first, không dùng công cụ ngoài
+Mọi icon, hoạ tiết, illustration đều là SVG viết tay/generate trực tiếp trong code — không tải ảnh stock, không dùng Canva/Figma. Nếu cần một icon không có sẵn trong `lucide-react` (đã cài kèm shadcn), viết SVG inline thay vì đi tìm asset ngoài.
+
 ## Concept
 Không gian tối, gradient sâu, đèn viền, avatar được chiếu sáng như studio — cảm giác cinematic nhưng tập trung, không lòe loẹt. App mặc định **dark theme** (`<html class="dark">`), không có toggle sáng/tối trừ khi được yêu cầu thêm.
 

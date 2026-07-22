@@ -23,6 +23,11 @@ Core rule: **Voice + 3D + STT + TTS run 100% client-side and free.** Only the Cl
 - NEVER put the Anthropic API key in client code. All Claude calls go through the proxy.
 - Scoring mode must request JSON-only output from Claude and validate with zod before rendering.
 
+## Design & assets — code-first, no external tools
+- All visual/design assets are authored **directly as code by Claude Code** — no Canva, Figma, stock photos, or external image-gen tools. This covers: icons/illustrations (hand-written SVG), UI decoration and design tokens (Tailwind), 3D lighting/materials/animation, particle systems, and audio-reactive GLSL shaders.
+- **One exception:** the examiner's rigged humanoid avatar mesh (GLB with Oculus viseme blendshapes) is sourced once from Ready Player Me — no LLM can generate a riggable 3D mesh from a text prompt. Everything applied to that mesh afterward (lighting, camera, animation, effects) is still code.
+- Do not reach for the Canva MCP tool for this project; it is not part of the design workflow.
+
 ## IELTS scoring
 - 4 criteria, band 0–9, overall = average rounded to nearest 0.5: Fluency & Coherence, Lexical Resource, Grammatical Range & Accuracy, Pronunciation.
 - Pronunciation from transcript+audio is approximate — label it as such, never present as exact.

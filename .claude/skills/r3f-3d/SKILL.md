@@ -5,6 +5,9 @@ description: Use when building or modifying the 3D avatar layer — TalkingHead 
 
 # R3F / Three.js — quy ước dựng cảnh 3D
 
+## Nguồn asset: code-first, ngoại lệ duy nhất là avatar mesh
+Shader, particle, ánh sáng, animation, camera work — tất cả viết bằng code (GLSL/Three.js/R3F), không dùng công cụ thiết kế ngoài. **Ngoại lệ duy nhất:** mesh avatar người (GLB đã rig + viseme blendshapes) lấy từ Ready Player Me vì không LLM nào sinh được mesh/rig từ text prompt — mọi thứ áp lên mesh đó sau khi load (lighting, animation, effects) vẫn là code.
+
 ## Kiến trúc 3 lớp (bắt buộc — xem CLAUDE.md)
 1. **Background canvas** — audio-reactive shader/particles, phản ứng theo `AnalyserNode` của giọng examiner (màu lạnh) hoặc user (màu ấm).
 2. **Avatar canvas** — TalkingHead (met4citizen) render GLB của Ready Player Me, ở giữa.
