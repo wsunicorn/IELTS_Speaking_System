@@ -1,108 +1,105 @@
 import { lazy, Suspense, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { CueCard } from '@/features/conversation/CueCard'
-import { DEMO_CUE_CARDS } from '@/features/conversation/demoCueCards'
 import { useHeadTTS } from '@/features/speech/useHeadTTS'
-import { useSpeechToText } from '@/features/speech/useSpeechToText'
+import { HomeScreen } from '@/features/conversation/HomeScreen'
+import { Part2Session, type Part2SessionResult } from '@/features/conversation/Part2Session'
+import { SummaryScreen } from '@/features/conversation/SummaryScreen'
+import { DEMO_CUE_CARDS } from '@/features/conversation/demoCueCards'
+import { HistoryScreen } from '@/features/session-history/HistoryScreen'
+import { db } from '@/lib/db'
+import type { Session } from '@/types/session'
 
 const AvatarScene = lazy(() =>
   import('@/features/avatar/AvatarScene').then((m) => ({ default: m.AvatarScene })),
 )
 
-const DEMO_SENTENCE =
-  "Good morning, my name is Claude, and I'll be your examiner today."
+type Screen = 'home' | 'part2-session' | 'part2-summary' | 'history'
 
 function App() {
-  const { status, error, loadProgress, speak, activeSpeechRef } = useHeadTTS()
-  const stt = useSpeechToText('moonshine')
+  const { activeSpeechRef } = useHeadTTS()
 
-  // TEMPORARY demo toggle for Part 2 cue card UI — remove once wired into the
-  // real session flow. `demoRunId` remounts CueCard to restart its timers.
-  const [showCueCardDemo, setShowCueCardDemo] = useState(false)
-  const [demoRunId, setDemoRunId] = useState(0)
+  const [screen, setScreen] = useState<Screen>('home')
+  const [cardIndex, setCardIndex] = useState(0)
+  const [lastResult, setLastResult] = useState<Part2SessionResult | null>(null)
 
-  const isBusy = status === 'loading' || status === 'speaking'
-  const isListening = stt.status !== 'idle' && stt.status !== 'error'
+  const activeCard = DEMO_CUE_CARDS[cardIndex % DEMO_CUE_CARDS.length]
 
-  let statusText = 'Bấm nút để nghe giám khảo nói (Phase 2 demo).'
-  if (status === 'loading') {
-    statusText =
-      loadProgress !== null
-        ? `Đang tải model giọng nói lần đầu... ${loadProgress}%`
-        : 'Đang tải model giọng nói lần đầu...'
-  } else if (status === 'speaking') {
-    statusText = 'Giám khảo đang nói...'
-  } else if (status === 'error') {
-    statusText = `Lỗi: ${error}`
+  const handleSessionComplete = (result: Part2SessionResult) => {
+    setLastResult(result)
+    setScreen('part2-summary')
   }
 
-  let sttStatusText = 'Bấm nút để tự luyện nói (Phase 3 demo).'
-  if (stt.status === 'loading') sttStatusText = 'Đang tải model nhận diện giọng nói lần đầu...'
-  else if (stt.status === 'ready') sttStatusText = 'Sẵn sàng — mời bạn nói.'
-  else if (stt.status === 'recording') sttStatusText = 'Đang nghe bạn nói...'
-  else if (stt.status === 'transcribing') sttStatusText = 'Đang nhận diện...'
-  else if (stt.status === 'error') sttStatusText = `Lỗi: ${stt.error}`
+  const handleRetry = () => {
+    setCardIndex((i) => i + 1)
+    setLastResult(null)
+    setScreen('part2-session')
+  }
 
+  const handleSaveAndExit = async () => {
+    if (lastResult) {
+      const session: Session = {
+        id: crypto.randomUUID(),
+        createdAt: Date.now(),
+        mode: 'part2',
+        topic: lastResult.card.topic,
+        turns: [
+          {
+            role: 'candidate',
+            text: lastResult.transcript,
+            tStart: 0,
+            tEnd: lastResult.durationMs,
+          },
+        ],
+        metrics: lastResult.metrics,
+      }
+      await db.sessions.add(session)
+    }
+    setLastResult(null)
+    setScreen('home')
+  }
+
+  const handleDiscardAndExit = () => {
+    setLastResult(null)
+    setScreen('home')
+  }
+
+  if (screen === 'home') {
+    return (
+      <HomeScreen
+        onStartPart2Practice={() => setScreen('part2-session')}
+        onViewHistory={() => setScreen('history')}
+      />
+    )
+  }
+
+  if (screen === 'history') {
+    return <HistoryScreen onBack={() => setScreen('home')} />
+  }
+
+  if (screen === 'part2-summary' && lastResult) {
+    return (
+      <SummaryScreen
+        result={lastResult}
+        onRetry={handleRetry}
+        onSaveAndExit={() => void handleSaveAndExit()}
+        onDiscardAndExit={handleDiscardAndExit}
+      />
+    )
+  }
+
+  // screen === 'part2-session'
   return (
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
       {/* Layer 1 — background (audio-reactive shader lands here in a later phase) */}
       <div className="absolute inset-0 bg-linear-to-b from-background to-[#0a0c14]" />
 
-      {/* Layer 2 — avatar canvas */}
+      {/* Layer 2 — avatar canvas (idle presence; no examiner speech until Phase 4) */}
       <Suspense fallback={null}>
         <AvatarScene activeSpeechRef={activeSpeechRef} />
       </Suspense>
 
       {/* Layer 3 — DOM UI overlay */}
-      <div className="relative flex min-h-screen flex-col items-center justify-end gap-4 pb-16 text-center">
-        <h1 className="text-2xl font-medium tracking-tight">
-          IELTS Speaking AI Examiner
-        </h1>
-
-        <p className="text-muted-foreground">{statusText}</p>
-        <Button disabled={isBusy} onClick={() => speak(DEMO_SENTENCE)}>
-          Nghe giám khảo nói
-        </Button>
-
-        <p className="mt-4 text-muted-foreground">{sttStatusText}</p>
-        <Button
-          variant={isListening ? 'destructive' : 'default'}
-          onClick={() => (isListening ? stt.stop() : stt.start())}
-        >
-          {isListening ? 'Dừng nghe' : 'Bắt đầu nói'}
-        </Button>
-
-        {stt.segments.length > 0 && (
-          <div className="max-w-lg space-y-1 text-sm text-foreground/90">
-            {stt.segments.map((segment, i) => (
-              <p key={i}>{segment.text}</p>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-6 flex flex-col items-center gap-3 border-t border-border/50 pt-6">
-          <p className="text-xs text-muted-foreground">
-            Demo tạm thời — Part 2 cue card (durations rút ngắn để xem nhanh, bản thật là 60s/120s)
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setDemoRunId((id) => id + 1)
-              setShowCueCardDemo(true)
-            }}
-          >
-            {showCueCardDemo ? 'Restart cue card demo' : 'Show cue card demo'}
-          </Button>
-          {showCueCardDemo && (
-            <CueCard
-              key={demoRunId}
-              card={DEMO_CUE_CARDS[0]}
-              prepSeconds={8}
-              speakingSeconds={12}
-              onComplete={() => console.log('[CueCard demo] speaking time complete')}
-            />
-          )}
-        </div>
+      <div className="relative flex min-h-screen flex-col items-center justify-end gap-4 px-6 pb-16">
+        <Part2Session card={activeCard} onSessionComplete={handleSessionComplete} />
       </div>
     </main>
   )
