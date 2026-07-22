@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 export interface HomeScreenProps {
+  onStartPart1Practice: () => void
   onStartPart2Practice: () => void
   onViewHistory: () => void
 }
@@ -38,9 +39,9 @@ const MODES: ModeDefinition[] = [
     title: 'Part 1',
     tagline: 'Introduction & familiar topics',
     description:
-      'A 4–5 minute warm-up: the examiner asks short questions about yourself and everyday topics.',
+      'A live conversation with a Gemini-powered examiner: short questions about yourself and everyday topics, spoken and answered by voice in real time.',
     icon: MessageSquare,
-    available: false,
+    available: true,
   },
   {
     id: 'part2',
@@ -110,7 +111,7 @@ function ModeCard({ mode, onSelect }: ModeCardProps) {
         </div>
         <p className="text-sm text-muted-foreground">{mode.description}</p>
         <p className="mt-auto text-xs text-muted-foreground/80">
-          Coming soon — needs the Claude conversation loop.
+          Coming soon — not assembled into its own flow yet.
         </p>
       </div>
     )
@@ -153,12 +154,17 @@ function ModeCard({ mode, onSelect }: ModeCardProps) {
 }
 
 /**
- * Mode-selection entry screen. Only Part 2 is wired to a real practice loop
- * (on-device STT + computed metrics) — everything else needs the Claude
- * conversation loop, which is on hold pending API credentials, so those
- * cards are shown but deliberately inert rather than hidden.
+ * Mode-selection entry screen. Part 1 (live Gemini conversation) and Part 2
+ * (cue card + on-device STT + computed metrics) are wired to real practice
+ * loops — Part 3/Full/Free talk build on the same Gemini conversation loop
+ * but aren't assembled into their own flows yet, so those cards are shown
+ * but deliberately inert rather than hidden.
  */
-export function HomeScreen({ onStartPart2Practice, onViewHistory }: HomeScreenProps) {
+export function HomeScreen({
+  onStartPart1Practice,
+  onStartPart2Practice,
+  onViewHistory,
+}: HomeScreenProps) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
       <div className="absolute inset-0 bg-linear-to-b from-background to-[#0a0c14]" />
@@ -169,8 +175,9 @@ export function HomeScreen({ onStartPart2Practice, onViewHistory }: HomeScreenPr
             IELTS Speaking AI Examiner
           </h1>
           <p className="mx-auto max-w-lg text-sm text-muted-foreground">
-            Choose a practice mode. Part 2 is ready to try now — the rest of the test
-            unlocks once the AI conversation loop is connected.
+            Choose a practice mode. Part 1 and Part 2 are ready to try now — Part 3 and
+            the full mock test build on the same conversation loop but aren't wired up
+            as their own flows yet.
           </p>
         </header>
 
@@ -178,13 +185,15 @@ export function HomeScreen({ onStartPart2Practice, onViewHistory }: HomeScreenPr
           aria-label="Practice modes"
           className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {MODES.map((mode) => (
-            <ModeCard
-              key={mode.id}
-              mode={mode}
-              onSelect={mode.id === 'part2' ? onStartPart2Practice : undefined}
-            />
-          ))}
+          {MODES.map((mode) => {
+            const onSelect =
+              mode.id === 'part1'
+                ? onStartPart1Practice
+                : mode.id === 'part2'
+                  ? onStartPart2Practice
+                  : undefined
+            return <ModeCard key={mode.id} mode={mode} onSelect={onSelect} />
+          })}
         </section>
 
         <section className="mt-auto flex justify-center border-t border-border/50 pt-6">
