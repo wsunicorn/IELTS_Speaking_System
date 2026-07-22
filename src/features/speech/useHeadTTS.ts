@@ -19,6 +19,11 @@ const DEFAULT_LANGUAGE = 'en-us'
  * speech-pipeline skill). `activeSpeechRef` is a ref, not state: the avatar's
  * useMouthSync hook reads it every animation frame and a ref avoids a
  * re-render per frame.
+ *
+ * `speak(text)` queues sentences and plays them back-to-back without
+ * overlap — this is what makes progressive TTS (plan 4.7) possible: the
+ * conversation loop can call `speak()` once per sentence as they stream in,
+ * instead of waiting for the full reply before saying anything.
  */
 export function useHeadTTS() {
   const [status, setStatus] = useState<TTSStatus>('idle')
@@ -27,6 +32,8 @@ export function useHeadTTS() {
 
   const headttsRef = useRef<HeadTTS | null>(null)
   const activeSpeechRef = useRef<ActiveSpeech | null>(null)
+  const queueRef = useRef<string[]>([])
+  const isProcessingRef = useRef(false)
 
   const ensureConnected = useCallback(async () => {
     if (!headttsRef.current) {
@@ -52,40 +59,72 @@ export function useHeadTTS() {
     return headtts
   }, [])
 
-  const speak = useCallback(
-    async (text: string) => {
-      try {
-        setError(null)
-        const headtts = await ensureConnected()
-        setStatus('speaking')
+  /** Synthesizes + plays one utterance, resolving only once playback ends. */
+  const playOne = useCallback(
+    (headtts: HeadTTS, text: string) =>
+      new Promise<void>((resolve, reject) => {
+        headtts
+          .synthesize({ input: text })
+          .then(([message]) => {
+            const { audio, ...visemeData } = message.data
+            const audioCtx = headtts.settings.audioCtx
+            return audioCtx.resume().then(() => {
+              const source = audioCtx.createBufferSource()
+              source.buffer = audio
+              source.connect(audioCtx.destination)
 
-        const [message] = await headtts.synthesize({ input: text })
-        const { audio, ...visemeData } = message.data
-        const audioCtx = headtts.settings.audioCtx
-        await audioCtx.resume()
-
-        const source = audioCtx.createBufferSource()
-        source.buffer = audio
-        source.connect(audioCtx.destination)
-
-        activeSpeechRef.current = {
-          envelope: buildVisemeEnvelope(visemeData),
-          audioCtx,
-          startTime: audioCtx.currentTime,
-        }
-        source.onended = () => {
-          activeSpeechRef.current = null
-          setStatus('ready')
-        }
-        source.start()
-      } catch (err) {
-        activeSpeechRef.current = null
-        setError(err instanceof Error ? err.message : String(err))
-        setStatus('error')
-      }
-    },
-    [ensureConnected],
+              activeSpeechRef.current = {
+                envelope: buildVisemeEnvelope(visemeData),
+                audioCtx,
+                startTime: audioCtx.currentTime,
+              }
+              source.onended = () => {
+                activeSpeechRef.current = null
+                resolve()
+              }
+              source.start()
+            })
+          })
+          .catch(reject)
+      }),
+    [],
   )
 
-  return { status, error, loadProgress, speak, activeSpeechRef }
+  const drainQueue = useCallback(async () => {
+    if (isProcessingRef.current) return
+    isProcessingRef.current = true
+    try {
+      const headtts = await ensureConnected()
+      setStatus('speaking')
+      while (queueRef.current.length > 0) {
+        const text = queueRef.current.shift()!
+        await playOne(headtts, text)
+      }
+      setStatus('ready')
+    } catch (err) {
+      queueRef.current = []
+      activeSpeechRef.current = null
+      setError(err instanceof Error ? err.message : String(err))
+      setStatus('error')
+    } finally {
+      isProcessingRef.current = false
+    }
+  }, [ensureConnected, playOne])
+
+  const speak = useCallback(
+    (text: string) => {
+      setError(null)
+      queueRef.current.push(text)
+      void drainQueue()
+    },
+    [drainQueue],
+  )
+
+  /** Clears any queued/in-flight speech — used when a session resets or errors out. */
+  const stopAll = useCallback(() => {
+    queueRef.current = []
+    activeSpeechRef.current = null
+  }, [])
+
+  return { status, error, loadProgress, speak, stopAll, activeSpeechRef }
 }

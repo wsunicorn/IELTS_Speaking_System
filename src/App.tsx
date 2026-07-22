@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { useHeadTTS } from '@/features/speech/useHeadTTS'
 import { HomeScreen } from '@/features/conversation/HomeScreen'
+import { Part1Session } from '@/features/conversation/Part1Session'
 import { Part2Session, type Part2SessionResult } from '@/features/conversation/Part2Session'
 import { SummaryScreen } from '@/features/conversation/SummaryScreen'
 import { DEMO_CUE_CARDS } from '@/features/conversation/demoCueCards'
@@ -12,10 +13,10 @@ const AvatarScene = lazy(() =>
   import('@/features/avatar/AvatarScene').then((m) => ({ default: m.AvatarScene })),
 )
 
-type Screen = 'home' | 'part2-session' | 'part2-summary' | 'history'
+type Screen = 'home' | 'part1-session' | 'part2-session' | 'part2-summary' | 'history'
 
 function App() {
-  const { activeSpeechRef } = useHeadTTS()
+  const { activeSpeechRef, speak, stopAll, status: ttsStatus } = useHeadTTS()
 
   const [screen, setScreen] = useState<Screen>('home')
   const [cardIndex, setCardIndex] = useState(0)
@@ -65,6 +66,7 @@ function App() {
   if (screen === 'home') {
     return (
       <HomeScreen
+        onStartPart1Practice={() => setScreen('part1-session')}
         onStartPart2Practice={() => setScreen('part2-session')}
         onViewHistory={() => setScreen('history')}
       />
@@ -86,20 +88,29 @@ function App() {
     )
   }
 
-  // screen === 'part2-session'
+  // screen === 'part1-session' | 'part2-session' — both show the avatar canvas
   return (
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
       {/* Layer 1 — background (audio-reactive shader lands here in a later phase) */}
       <div className="absolute inset-0 bg-linear-to-b from-background to-[#0a0c14]" />
 
-      {/* Layer 2 — avatar canvas (idle presence; no examiner speech until Phase 4) */}
+      {/* Layer 2 — avatar canvas */}
       <Suspense fallback={null}>
         <AvatarScene activeSpeechRef={activeSpeechRef} />
       </Suspense>
 
       {/* Layer 3 — DOM UI overlay */}
       <div className="relative flex min-h-screen flex-col items-center justify-end gap-4 px-6 pb-16">
-        <Part2Session card={activeCard} onSessionComplete={handleSessionComplete} />
+        {screen === 'part1-session' ? (
+          <Part1Session
+            speak={speak}
+            stopAllSpeech={stopAll}
+            ttsStatus={ttsStatus}
+            onExit={() => setScreen('home')}
+          />
+        ) : (
+          <Part2Session card={activeCard} onSessionComplete={handleSessionComplete} />
+        )}
       </div>
     </main>
   )
