@@ -1,6 +1,6 @@
 ---
 name: ielts-rubric
-description: Use when implementing or touching the IELTS Speaking scoring logic — the Claude scoring-mode prompt, the metrics engine (WPM, fillers, pauses, vocab diversity), the scoring JSON schema/zod validation, or anything rendering band scores/feedback in the UI. Ensures scoring stays consistent with the official 4-criteria rubric.
+description: Use when implementing or touching the IELTS Speaking scoring logic — the Gemini scoring-mode prompt, the metrics engine (WPM, fillers, pauses, vocab diversity), the scoring JSON schema/zod validation, or anything rendering band scores/feedback in the UI. Ensures scoring stays consistent with the official 4-criteria rubric.
 ---
 
 # IELTS Speaking — quy tắc chấm điểm nhất quán
@@ -13,7 +13,7 @@ description: Use when implementing or touching the IELTS Speaking scoring logic 
 
 `overall_band` = trung bình cộng 4 tiêu chí, làm tròn đến 0.5 gần nhất.
 
-## Metrics client-side (bằng chứng cho Claude chấm, không phải để tự chấm)
+## Metrics client-side (bằng chứng cho Gemini chấm, không phải để tự chấm)
 Tính từ transcript + word timestamps của STT:
 - `words_per_minute` — proxy cho fluency.
 - `filler_count` — đếm "um", "uh", "like", "you know"...
@@ -21,7 +21,7 @@ Tính từ transcript + word timestamps của STT:
 - `vocab_diversity` — type–token ratio.
 - `sentence_length_variation`.
 
-Các metrics này **luôn được gửi kèm transcript** trong request scoring — không để Claude chấm "cảm tính" chỉ từ text thô.
+Các metrics này **luôn được gửi kèm transcript** trong request scoring — không để Gemini chấm "cảm tính" chỉ từ text thô.
 
 ## JSON schema đầu ra (Scoring mode) — bắt buộc đúng shape này
 ```json
@@ -40,11 +40,11 @@ Các metrics này **luôn được gửi kèm transcript** trong request scoring
   "actionable_next_steps": [""]
 }
 ```
-- Validate response bằng **zod** trước khi render — không bao giờ render JSON chưa qua validate.
-- Ép Claude trả **CHỈ JSON**, không markdown/code fence, không lời mở đầu — parse trực tiếp.
+- Validate response bằng **zod** trước khi render — không bao giờ render JSON chưa qua validate, kể cả khi đã dùng `generationConfig.response_schema` của Gemini để ràng buộc shape (defense-in-depth, không tin tuyệt đối phía model).
+- Ép Gemini trả **CHỈ JSON** (dùng `response_mime_type: "application/json"` + `response_schema`), không markdown/code fence, không lời mở đầu — parse trực tiếp.
 - Nếu user chọn feedback tiếng Việt: `evidence`/`issues`/`tips`/`explanation` có thể tiếng Việt, nhưng `model_answer` luôn giữ tiếng Anh.
 
-## Hai chế độ của Claude — đừng lẫn lộn
+## Hai chế độ của Gemini — đừng lẫn lộn
 - **Conversation mode**: đóng vai examiner, KHÔNG sửa lỗi giữa chừng, hỏi ngắn gọn, đúng flow Part 1/2/3 và thời gian chuẩn.
 - **Scoring mode**: chỉ chạy sau mỗi Part/cả session, nhận transcript+metrics, trả JSON theo schema trên. Hai system prompt này phải tách biệt, không dùng chung 1 prompt cho cả hai việc.
 

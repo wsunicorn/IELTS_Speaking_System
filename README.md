@@ -2,7 +2,7 @@
 
 Browser-based web/PWA app for practicing IELTS Speaking with a 3D talking examiner avatar (real lip-sync). See [`IELTS_Speaking_AI_Plan.md`](./IELTS_Speaking_AI_Plan.md) for the full spec and [`CLAUDE.md`](./CLAUDE.md) for project conventions.
 
-Core rule: **voice + 3D + STT + TTS run 100% client-side and free.** Only the Claude "brain" (scoring/conversation) uses the Anthropic API via a key-holding proxy.
+Core rule: **voice + 3D + STT + TTS run 100% client-side and free.** Only the "brain" (scoring/conversation) uses the Gemini API via a key-holding proxy.
 
 ## Stack
 
@@ -16,8 +16,9 @@ npm run dev      # start dev server
 npm run build    # type-check + production build
 npm run lint      # eslint
 npm run format    # prettier --write
+npm test          # vitest
 ```
 
 ## Project status
 
-Phase 0 (scaffold) complete. See `IELTS_Speaking_AI_Plan.md` section 8 for the full build roadmap.
+Avatar (procedural 3D), TTS, STT, metrics engine, scoring schema, and a real Part 2 practice loop (cue card → mic → computed stats → history) are done. Phase 4 (Gemini conversation loop via Cloudflare Worker proxy) is next, pending Cloudflare setup. See `IELTS_Speaking_AI_Plan.md` section 8 for the full build roadmap.

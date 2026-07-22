@@ -15,8 +15,8 @@ Toàn bộ inference giọng nói chạy **100% client-side, miễn phí, trong 
 - Màn kết quả (scoring) tái dùng cùng TTS pipeline để **đọc lại** `corrections[].corrected` và `model_answer` — không cần thêm hạ tầng TTS riêng.
 
 ## Streaming + progressive TTS (Conversation mode — quan trọng cho độ trễ)
-Không chờ Claude trả lời xong toàn bộ rồi mới TTS — sẽ tạo khoảng lặng chết 2–4 giây mỗi lượt. Thay vào đó:
-1. Nhận Claude response ở dạng **stream** (qua proxy).
+Không chờ Gemini trả lời xong toàn bộ rồi mới TTS — sẽ tạo khoảng lặng chết 2–4 giây mỗi lượt. Thay vào đó:
+1. Nhận Gemini response ở dạng **stream** (`streamGenerateContent?alt=sse`, qua proxy).
 2. Tách text thành câu hoàn chỉnh theo dấu câu ngay khi stream về.
 3. Đưa câu đầu tiên vào TTS synthesize + phát **ngay**, không chờ các câu sau.
 4. Các câu tiếp theo vào queue TTS, phát nối tiếp khi câu trước phát xong.
@@ -37,7 +37,7 @@ State machine chuyển sang `speaking` ngay khi câu đầu tiên bắt đầu p
 Pipeline giọng nói phải đồng bộ chặt với state machine trung tâm:
 - `idle` → chờ user bấm mic.
 - `listening` → STT worker đang nhận audio stream, UI hiện waveform.
-- `thinking` → đã có transcript, đang chờ Claude API trả lời (proxy call, streaming), mic tắt.
+- `thinking` → đã có transcript, đang chờ Gemini API trả lời (proxy call, streaming), mic tắt.
 - `speaking` → TTS đang phát (bắt đầu ngay từ câu đầu tiên, xem phần streaming ở trên) + avatar lip-sync; mic tắt.
 
 **Barge-in (user ngắt lời avatar) KHÔNG có trong MVP** — không implement VAD-trong-lúc-speaking, không cancel TTS giữa chừng. Không để 2 state chạy song song ngoài ý muốn (vd. vừa `speaking` vừa nhận input STT) — dùng guard của XState để chặn cứng việc này.
